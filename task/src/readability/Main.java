@@ -24,10 +24,7 @@ public class Main {
 
         double result = (double) words / sentences.length;
 
-        if (result <= 10) {
-            System.out.println("EASY");
-        } else {
-            System.out.println("HARD");
-        }
+        System.out.println(result <= 10 ? "EASY" : "HARD");
+
     }
 }
