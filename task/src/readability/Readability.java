@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 public class Readability {
@@ -15,6 +17,7 @@ public class Readability {
     private final int characters;
     private final double score;
     private final int syllables;
+    private final Set<Character> vowels = new HashSet<>(Arrays.asList('a', 'e', 'i', 'o', 'u', 'y'));
 
     public Readability(String fileName) {
         this.fileName = new File(fileName);
@@ -30,6 +33,30 @@ public class Readability {
     private int getSyllables() {
         final String[] separateBySpace = text.split("\\s+");
         int count = 0;
+
+
+        for (String word : separateBySpace) { int otro = 0;
+            boolean prevIsVowel = false;
+            word = word.replaceAll("\\s*\\p{Punct}+\\s*$", "");
+
+            if (word.toLowerCase().endsWith("e")) {
+                word = word.substring(0, word.length() - 1);
+            }
+
+            for (char c : word.toLowerCase().toCharArray()) {
+                final boolean isVowel = vowels.contains(c);
+                if (isVowel && !prevIsVowel) {
+                    ++otro;
+                }
+                prevIsVowel = isVowel;
+            }
+            otro = otro == 0 ? otro + 1 : otro;
+            count+=otro;
+            System.out.println(word);
+            System.out.println(word + " = " + otro);
+        }
+        System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!! " + count);
+
         for (String word : separateBySpace) {
             System.out.println(word);
             word = word.replaceAll("\\s*\\p{Punct}+\\s*$", "");
@@ -38,7 +65,9 @@ public class Readability {
                 word = word.substring(0, word.length() - 1);
             }
 
+
             if (word.matches("[aeiouyAEIOUY]{1,3}")) {
+
                 word = word.replaceAll("[aeiouyAEIOUY]{1,3}", "");
                 int res = word.replaceAll("[^aeiouyAEIOUY]", "").length();
                 System.out.println("a ver " + res);
@@ -49,7 +78,7 @@ public class Readability {
             } else if (word.matches("\\w+")) {
                 System.out.println("++ " + word.replaceAll("[^aeiouyAEIOUY]", "").length() + " ++");
 
-                if (word.matches("[aeiouyAEIOUY]{2}")){
+                if (word.matches("[aeiouyAEIOUY]{2}")) {
                     System.out.println("$$$$$$$$$$$$$$$$$$$$$$");
                 }
 
