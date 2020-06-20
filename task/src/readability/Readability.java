@@ -4,7 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
-import java.util.Arrays;
+import java.util.*;
 
 public class Readability {
     private final File fileName;
@@ -12,27 +12,68 @@ public class Readability {
     private final int words;
     private final int sentences;
     private final int characters;
-    private final double score;
+    private final int syllables;
+    private final Set<Character> vowels = new HashSet<>(Arrays.asList('a', 'e', 'i', 'o', 'u', 'y'));
+    private int polysyllables;
 
     public Readability(String fileName) {
         this.fileName = new File(fileName);
         this.text = importFile();
+//        this.text = "This is the front page of the Simple English Wikipedia. Wikipedias are places where people work together to write encyclopedias in different languages. We use Simple English words and grammar here. The Simple English Wikipedia is for everyone! That includes children and adults who are learning English. There are 142,262 articles on the Simple English Wikipedia. All of the pages are free to use. They have all been published under both the Creative Commons License and the GNU Free Documentation License. You can help here! You may change these pages and make new pages. Read the help pages and other good pages to learn how to write pages here. If you need help, you may ask questions at Simple talk. Use Basic English vocabulary and shorter sentences. This allows people to understand normally complex terms or phrases.";
         this.words = getWords();
         this.sentences = getSentences();
         this.characters = getCharacters();
-        this.score = getScore();
+        this.syllables = getSyllables();
     }
 
-    private double getScore() {
-        final double score = 4.71 * ((double) characters /  words) + 0.5 * ((double) words / sentences) - 21.43;
-        return score;
+
+    private int getSyllables() {
+        final String[] separateBySpace = text.split("\\s+");
+        int count = 0;
+        int poly = 0;
+        for (String word : separateBySpace) {
+            int otro = 0;
+            boolean prevIsVowel = false;
+            word = word.replaceAll("\\s*\\p{Punct}+\\s*$", "");
+
+            if (word.toLowerCase().endsWith("e")) {
+                word = word.substring(0, word.length() - 1);
+            }
+
+            for (char c : word.toLowerCase().toCharArray()) {
+                final boolean isVowel = vowels.contains(c);
+                if (isVowel && !prevIsVowel) {
+                    ++otro;
+                }
+                prevIsVowel = isVowel;
+            }
+
+            //Get count of polysyllables
+            if (otro > 2) {
+                poly++;
+            }
+
+            otro = otro == 0 ? otro + 1 : otro;
+            count += otro;
+        }
+
+        setPolysyllables(poly);
+        return count;
+    }
+
+    private int getPolysyllables() {
+        return this.polysyllables;
+    }
+
+    private void setPolysyllables(int poly) {
+        this.polysyllables = poly;
     }
 
     private int getCharacters() {
         final String[] separateBySpace = text.split("\\s+");
 
         return Arrays.stream(separateBySpace).mapToInt(
-                characters -> characters.length()).sum();
+                String::length).sum();
     }
 
     private int getSentences() {
@@ -44,6 +85,7 @@ public class Readability {
     }
 
     public void getResultReadability() {
+        final String algo;
         System.out.println("The text is:");
         System.out.println(text);
         System.out.println();
@@ -51,42 +93,38 @@ public class Readability {
         System.out.println("Words: " + words);
         System.out.println("Sentences: " + sentences);
         System.out.println("Characters: " + characters);
+        System.out.println("Syllables: " + syllables);
+        System.out.println("Polysyllables: " + getPolysyllables());
+        System.out.println("Enter the score you want to calculate (ARI, FK, SMOG, CL, all):");
 
-        System.out.printf("The score is: %.2f\n", score);
-        System.out.println("This text should be understood by " + getAge() + " year olds.");
-    }
+        algo = new Scanner(System.in).nextLine();
 
-    private String getAge() {
-        switch ((int) Math.ceil(score)) {
-            case 1:
-                return "5-6";
-            case 2:
-                return "6-7";
-            case 3:
-                return "7-9";
-            case 4:
-                return "9-10";
-            case 5:
-                return "10-11";
-            case 6:
-                return "11-12";
-            case 7:
-                return "12-13";
-            case 8:
-                return "13-14";
-            case 9:
-                return "14-15";
-            case 10:
-                return "15-16";
-            case 11:
-                return "16-17";
-            case 12:
-                return "17-18";
-            case 13:
-                return "18-24";
-            default:
-                return "24+";
+        final Algorithm algorithm = new Algorithm();
+        double average = 0;
+
+        switch (algo.toUpperCase()) {
+            case "ARI":
+                average = algorithm.getARI(characters, words, sentences);
+                break;
+            case "FK":
+                average = algorithm.getFK(words, sentences, syllables);
+                break;
+            case "SMOG":
+                average = algorithm.getSMOG(polysyllables, sentences);
+                break;
+            case "CL":
+                average = algorithm.getCL(characters, words, sentences);
+                break;
+            case "ALL":
+                average += algorithm.getARI(characters, words, sentences);
+                average += algorithm.getFK(words, sentences, syllables);
+                average += algorithm.getSMOG(polysyllables, sentences);
+                average += algorithm.getCL(characters, words, sentences);
+                average = average / 4;
+                break;
         }
+
+        System.out.printf("\nThis text should be understood in average by %.0f year olds.", average);
     }
 
     private String importFile() {
